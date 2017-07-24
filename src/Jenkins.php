@@ -273,6 +273,45 @@ class Jenkins
     }
 
     /**
+     * @param array $extraParameters
+     *
+     * @return bool
+     * @throws \RuntimeException
+     */
+    public function launchJobWithFileParams($jobName, $parameters = array())
+    {        
+        /* usage:
+            
+        $parameters['file0'] = curl_file_create(Storage::disk('local')->getDriver()->getAdapter()->applyPathPrefix('file.json'), "application/json", "file.json");
+        $parameters['json'] = '{"parameter": [{"name": "FileParameterName.json", "file":"file0"}]}';
+        */
+
+
+        $url = sprintf('%s/job/%s/build', $this->baseUrl, $jobName);
+        $curl = curl_init($url);
+
+        curl_setopt($curl, \CURLOPT_HTTPHEADER, array("Content-Type:multipart/form-data"));
+        curl_setopt($curl, \CURLOPT_POST, 1);
+        curl_setopt($curl, \CURLOPT_POSTFIELDS, ($parameters));
+
+        $headers = array();
+
+        if ($this->areCrumbsEnabled()) {
+            $headers[] = $this->getCrumbHeader();
+        }
+
+        curl_setopt($curl, \CURLOPT_HTTPHEADER, $headers);
+
+        curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            throw new \RuntimeException(sprintf('Error trying to launch job "%s" (%s)', $parameters['name'], $url));
+        }
+
+        return true;
+    }
+
+    /**
      * @param string $jobName
      *
      * @throws \RuntimeException
